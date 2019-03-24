@@ -74,12 +74,24 @@ extract_edge = true;
 
 % load association file, i.e., matched RGB and Depth timestamps
 dataset_name = 'freiburg1_desk';
+% dataset_path = ...
+%     strcat('/path_to_your_dataset_folder/', ...
+%     dataset_name, '/');
+% TODO: Make this a custom path based on user
 dataset_path = ...
-    strcat('/path_to_your_dataset_folder/', ...
+    strcat('/Users/MatthewWilmes/Documents/MATLAB/School/EECS568_MATLAB/Project/rgbd_tum/', ...
     dataset_name, '/');
 assoc_filename = strcat(dataset_path, 'assoc.txt');
-assoc = import_assoc_file(assoc_filename);
+% Load rows startRow to endRow (or 1 to end if not chosen)
+assoc = import_assoc_file(assoc_filename,1,2);
+%assoc = import_assoc_file(assoc_filename);
 
+% Make a pcd_full subfolder inside the dataset folder if it doesn't exist
+pcd_full_path = strcat(dataset_path,'pcd_full');
+if ~exist(pcd_full_path,'dir')
+    mkdir(pcd_full_path);
+    addpath(pcd_full_path);
+end
 
 % create point clouds
 for i = 1:size(assoc,1)
@@ -94,19 +106,20 @@ for i = 1:size(assoc,1)
    
    % compute points xyz
    points = double(rgb);
-   U = repmat(0:size(depth,2)-1, size(depth,1), 1);
-   V = repmat([0:size(depth,1)-1]', 1, size(depth,2));
-   points(:,:,3) = depth / scaling_factor;
-   points(:,:,1) = (U - cx) .* points(:,:,3) ./ fx;
-   points(:,:,2) = (V - cy) .* points(:,:,3) ./ fy;
+   U = repmat(0:size(depth,2)-1, size(depth,1), 1); % x in R^2
+   V = repmat([0:size(depth,1)-1]', 1, size(depth,2)); % y in R^3
+   points(:,:,3) = depth / scaling_factor; % z in R^3
+   points(:,:,1) = (U - cx) .* points(:,:,3) ./ fx; % x in R^3
+   points(:,:,2) = (V - cy) .* points(:,:,3) ./ fy; % y in R^3
    
    point_cloud = pointCloud(points, 'Color', rgb);
    
+   % Remove non-edge points from point cloud if true
    if extract_edge
        point_cloud = ptcloud_edge_filter(point_cloud);
    end
    
-   % write point clouds
+   % Write point cloud to <dataset_path>/pcd_full/<rgb_timestamp>.pcd
    path_to_save = strcat(dataset_path, 'pcd_full/', assoc(i,1), '.pcd');
    pcwrite(point_cloud, path_to_save,'Encoding','ascii');
    
