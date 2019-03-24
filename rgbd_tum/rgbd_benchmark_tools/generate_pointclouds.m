@@ -73,7 +73,7 @@ scaling_factor = 5000;  % depth scaling factor
 extract_edge = true;
 
 % load association file, i.e., matched RGB and Depth timestamps
-dataset_name = 'freiburg1_desk';
+dataset_name = 'freiburg1_xyz';
 % dataset_path = ...
 %     strcat('/path_to_your_dataset_folder/', ...
 %     dataset_name, '/');
