@@ -34,7 +34,7 @@ classdef rgbd_dvo < handle
         invalid_points;         % invalid points after projection
         Kf;                     % intrinsic matrix of focal lengths
         residual;
-        alpha;                  % Cauchy loss parameter
+%         alpha;                  % Cauchy loss parameter
     end
     
     
@@ -194,14 +194,22 @@ classdef rgbd_dvo < handle
             obj.U(obj.invalid_points) = [];
             obj.V = round(obj.V);
             obj.V(obj.invalid_points) = [];
+            
             % get projected points intensity
-            obj.intensity_x = diag(obj.fixed_image(obj.V, obj.U));
+            % This method is much more efficient than the one below it
+            obj.intensity_x = zeros(length(obj.U),1);
+            for iter = 1:length(obj.U)
+                obj.intensity_x(iter) = obj.fixed_image(obj.V(iter), obj.U(iter));
+            end
+            % Commented out inefficient code
+%             obj.intensity_x = diag(obj.fixed_image(obj.V, obj.U));
             
             if isempty(obj.Kf)
                 % [fx 0; 0 fy] * (1/x3) * [1 0 -x1/x3; 0 1 -x2/x3]
                 obj.Kf = @(x) [fx/x(3), 0    , -(fx*x(1))/x(3)^2;
                                0    , fy/x(3), -(fy*x(2))/x(3)^2];
             end
+            % Make sure intensities are between 0 and 1
             if any(obj.intensity_x > 1)
                 obj.intensity_x = double(obj.intensity_x)/255;
             end
@@ -217,24 +225,37 @@ classdef rgbd_dvo < handle
             
             % get projected points intensity gradient
             obj.gradI = [];
-            obj.gradI.u = diag(obj.imgrad.u(obj.V, obj.U));
-            obj.gradI.v = diag(obj.imgrad.v(obj.V, obj.U));
-            
-            obj.J = zeros(1,6);
+            % For each pixel in the point cloud, get the intensity gradient
+            % in the x (u) and y (v) direction
+            % This method is much more efficient than the one below it
+            obj.gradI.u = zeros(length(obj.U),1);
+            obj.gradI.v = zeros(length(obj.U),1);
+            for iter = 1:length(obj.U)
+                obj.gradI.u(iter) = obj.imgrad.u(obj.V(iter), obj.U(iter));
+                obj.gradI.v(iter) = obj.imgrad.v(obj.V(iter), obj.U(iter));
+            end
+            % Commented out inefficient code
+%             obj.gradI.u = diag(obj.imgrad.u(obj.V, obj.U));
+%             obj.gradI.v = diag(obj.imgrad.v(obj.V, obj.U));
+                        
+%             obj.J = zeros(1,6);
             x = obj.cloud_y(~obj.invalid_points, :);
+            obj.J = zeros(size(x,1),6);
             % apply Cauchy loss
-            obj.alpha = 4;
+%             obj.alpha = 4;
             for i = 1:size(x,1)
 %                 try
                 Jc = obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
-                obj.J = obj.J + 1/(obj.residual(i)/obj.alpha + 1) * [obj.gradI.u(i), obj.gradI.v(i)] *...
-                    Jc; % obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
+%                 obj.J = obj.J + 1/(obj.residual(i)/obj.alpha + 1) * [obj.gradI.u(i), obj.gradI.v(i)] *...
+%                     Jc; % obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
+%                 obj.J = [obj.J; obj.gradI.u(i), obj.gradI.v(i)] * Jc]];
+                obj.J(i,:) = [obj.gradI.u(i), obj.gradI.v(i)] * Jc;
 %                 catch
 %                     keyboard;
 %                 end
             end
             % correct residuals based on Cauchy loss
-            obj.residual = obj.alpha * log(1 + (obj.residual/obj.alpha));
+%             obj.residual = obj.alpha * log(1 + (obj.residual/obj.alpha));
         end
         
         function align(obj)
@@ -244,21 +265,27 @@ classdef rgbd_dvo < handle
                 % The point clouds are fixed (x) and moving (y)
                 % current transformation
                 obj.tform = affine3d([obj.R, obj.T; 0, 0, 0, 1]');
+                % Transform source point cloud to see if it matches target
+                % point cloud
                 moved = pctransform(obj.moving, obj.tform);
                 
                 % extract point cloud information:
                 obj.cloud_y = double(moved.Location);
                 
-                % compute 3x6 Jacobian
+                % compute 1x6 Jacobian
                 obj.compute_gradient();
                 
                 % compute step size for integrating the flow
 %                 obj.compute_step_size;
 %                 dt = obj.step;
-                dt = 0.2;
-                twist = dt * (obj.J' * obj.J + 1e-5*eye(6)) \ obj.J' * sum(obj.residual);
+                %dt = 0.2;
+                dt = 1;
+                twist = dt * (obj.J' * obj.J) \ obj.J' * obj.residual;
+%                 twist = dt * (obj.J' * obj.J + 1e-5*eye(6)) \ obj.J' * sum(obj.residual);
                 obj.v = twist(1:3);
                 obj.omega = twist(4:6);
+%                 obj.v = twist(1:3);
+%                 obj.omega = twist(4:6);
                 
                 % Stop if the step size is too small
                 if max(norm(obj.omega),norm(obj.v)) < obj.eps
