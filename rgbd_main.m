@@ -36,7 +36,7 @@ target_ptcloud = [];
 % % Load the point cloud
 target_ptcloud.ptcloud = pcread(ptcloud_files{1,1});
 % % Load the corresponding rgb image as grayscale
-target_ptcloud.image = rgb2gray(imread(ptcloud_files{1,2}));
+target_ptcloud.image = rgb2gray(imread(char(ptcloud_files{1,2})));
 % Load second .pcd file as the source (moving) point cloud
 source_ptcloud = pcread(ptcloud_files{2,1});
 %source_ptcloud = [];
@@ -50,4 +50,4 @@ rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud);
 rgbd_dvo.align();
 
 % Print transform
-rgbd_dvo.tform
+rgbd_dvo.tform.T'
