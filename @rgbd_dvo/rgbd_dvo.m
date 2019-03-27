@@ -186,8 +186,8 @@ classdef rgbd_dvo < handle
 %             cx = 320.1;  % optical center x
 %             cy = 247.6;  % optical center y
             
-            obj.U = obj.cloud_y(:,1) * fx ./ obj.cloud_y(:,3) + cx;
-            obj.V = obj.cloud_y(:,2) * fy ./ obj.cloud_y(:,3) + cy;
+            obj.U = obj.cloud_y(:,1) * fx ./ obj.cloud_y(:,3) + cx; %%% pi(G) first element
+            obj.V = obj.cloud_y(:,2) * fy ./ obj.cloud_y(:,3) + cy; %%% pi(G) second element
             % remove out of frame projected points
             obj.invalid_points = obj.U < 0.5 | obj.U > obj.u_max | obj.V < 0.5 | obj.V > obj.v_max;
             obj.U = round(obj.U);
@@ -244,12 +244,23 @@ classdef rgbd_dvo < handle
             % apply Cauchy loss
 %             obj.alpha = 4;
             for i = 1:size(x,1)
-%                 try
-                Jc = obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
+                
+%       function omega_hat = hat(omega)
+%             % The 'hat' function, R^3\to\Skew_3
+%             omega_hat = [0,         -omega(3),  omega(2);...
+%                         omega(3),   0,          -omega(1);...
+%                         -omega(2),  omega(1),   0];
+%         end%                 try
+
+%         obj.Kf = @(x) [fx/x(3), 0    , -(fx*x(1))/x(3)^2;
+%                                0    , fy/x(3), -(fy*x(2))/x(3)^2];
+
+                Jc = obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];  %2*3*3*6=2*6
 %                 obj.J = obj.J + 1/(obj.residual(i)/obj.alpha + 1) * [obj.gradI.u(i), obj.gradI.v(i)] *...
 %                     Jc; % obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
 %                 obj.J = [obj.J; obj.gradI.u(i), obj.gradI.v(i)] * Jc]];
                 obj.J(i,:) = [obj.gradI.u(i), obj.gradI.v(i)] * Jc;
+                %obj.J = obj.J+ [obj.gradI.u(i), obj.gradI.v(i)] * Jc;
 %                 catch
 %                     keyboard;
 %                 end
@@ -280,7 +291,7 @@ classdef rgbd_dvo < handle
 %                 dt = obj.step;
                 %dt = 0.2;
                 dt = 1;
-                twist = dt * (obj.J' * obj.J) \ obj.J' * obj.residual;
+                twist = dt * (sum(obj.J)' * sum(obj.J)) \ (sum(obj.J)' * sum(obj.residual)); %%% why there is no ()
 %                 twist = dt * (obj.J' * obj.J + 1e-5*eye(6)) \ obj.J' * sum(obj.residual);
                 obj.v = twist(1:3);
                 obj.omega = twist(4:6);
