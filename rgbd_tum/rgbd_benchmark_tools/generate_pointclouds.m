@@ -79,7 +79,7 @@ dataset_name = 'freiburg1_xyz';
 %     dataset_name, '/');
 % TODO: Make this a custom path based on user
 dataset_path = ...
-    strcat('/Users/MatthewWilmes/Documents/MATLAB/School/EECS568_MATLAB/Project/rgbd_tum/', ...
+    strcat('rgbd_tum/', ...
     dataset_name, '/');
 assoc_filename = strcat(dataset_path, 'assoc.txt');
 % Load rows startRow to endRow (or 1 to end if not chosen)
@@ -93,15 +93,16 @@ if ~exist(pcd_full_path,'dir')
     addpath(pcd_full_path);
 end
 
+
 % create point clouds
 for i = 1:size(assoc,1)
    pc_name = assoc(i,1); % using RGB image timestamp
    
    % load RGB image
-   rgb = imread(strcat(dataset_path, assoc(i,2)));
+   rgb = imread(strcat(dataset_path, char(assoc(i,2))));
    
    % load Depth image
-   depth = double(imread(strcat(dataset_path, assoc(i,4))));
+   depth = double(imread(strcat(dataset_path, char(assoc(i,4)))));
    depth(depth == 0) = nan;
    
    % compute points xyz
