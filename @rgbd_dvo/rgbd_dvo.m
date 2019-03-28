@@ -34,6 +34,8 @@ classdef rgbd_dvo < handle
         invalid_points;         % invalid points after projection
         Kf;                     % intrinsic matrix of focal lengths
         residual;
+        J_sum;                  % calculate the sum of J'*J
+        residue_sum;            % calculate the sum of J'*reisidual
 %         alpha;                  % Cauchy loss parameter
     end
     
@@ -291,7 +293,19 @@ classdef rgbd_dvo < handle
 %                 dt = obj.step;
                 %dt = 0.2;
                 dt = 1;
-                twist = dt * (sum(obj.J)' * sum(obj.J)) \ (sum(obj.J)' * sum(obj.residual)); %%% why there is no ()
+                
+                obj.J_sum = zeros(6);
+                obj.residue_sum = zeros(6,1);
+                for i = 1:length(obj.J)
+                    obj.J_sum = obj.J_sum + obj.J(i,:)'*obj.J(i,:);
+                    obj.residue_sum = obj.residue_sum + obj.J(i,:)'*obj.residual(i);
+                   
+                end
+                
+                
+               % twist = dt * (sum(obj.J)' * sum(obj.J)) \ (sum(obj.J)' * sum(obj.residual)); %%% why there is no ()
+                
+                twist = dt * obj.J_sum \ obj.residue_sum;
 %                 twist = dt * (obj.J' * obj.J + 1e-5*eye(6)) \ obj.J' * sum(obj.residual);
                 obj.v = twist(1:3);
                 obj.omega = twist(4:6);
