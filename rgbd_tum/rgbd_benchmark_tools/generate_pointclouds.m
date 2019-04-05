@@ -109,7 +109,7 @@ end
 
 % create point clouds
 for i = 1:size(assoc,1)
-   pc_name = assoc(i,1); % using RGB image timestamp
+%    pc_name = assoc(i,1); % using RGB image timestamp
    
    % load RGB image
    rgb = imread(strcat(dataset_path, assoc(i,2)));

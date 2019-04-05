@@ -105,20 +105,32 @@ source_ptcloud = pcread(ptcloud_files{2,1});
 %source_ptcloud.ptcloud = pcread(ptcloud_files{2,1});
 %source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
 
-gridStep = 0.1;
-%for grid = 0.1:0.05:0.01
-% target_ptcloud
-target_ptcloud_temp.image = target_ptcloud.image;
-target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud.ptcloud,'gridAverage',gridStep);
-source_ptcloud_temp = pcdownsample(source_ptcloud,'gridAverage',gridStep);
+%gridStep = 0.1;
 
-    % Add the target and source point clouds to the object
+% Make a temporary target point cloud for down-sampling
+target_ptcloud_temp.image = target_ptcloud.image;
+target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
+% Make a temporary source point cloud for down-sampling
+source_ptcloud_temp = source_ptcloud;
+
+% Coarse-to-fine approach
+for gridStep = 0.1:-0.001:0.01
+%for gridStep = 0.1:-0.025:0.05
+
+    % Down-sample target point cloud
+    target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',gridStep);
+    % Down-sample source point cloud
+    source_ptcloud_temp = pcdownsample(source_ptcloud_temp,'gridAverage',gridStep);
+
 %     rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud);
-rgbd_dvo.set_ptclouds(target_ptcloud_temp, source_ptcloud_temp);
+    % Add the target and source point clouds to the object
+    rgbd_dvo.set_ptclouds(target_ptcloud_temp, source_ptcloud_temp);
     
-% Align the point clouds
-rgbd_dvo.align();
-% end
+    % Align the point clouds
+    rgbd_dvo.align();
+    gridStep
+    
+end
 
 % Read full target and source point clouds
 target_ptcloud_full = pcread(ptcloud_files{1,1});
@@ -131,6 +143,6 @@ pcshow(target_ptcloud_full)
 hold on
 pcshow(source_ptcloud_full_transformed)
 disp('done')
-%end
+
 % Print transform
 %rgbd_dvo.tform.T
