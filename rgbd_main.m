@@ -56,6 +56,11 @@ make_pcd_files = false;
 start_row = 1; % set to 1 if you want to start at the beginning of the file
 end_row = 2; % set to inf if you want to go to the end of the file
 
+% Set this flag to true if you want to see the full point cloud output
+%   instead of the edges. NOTE: This is only useful for frames that have a
+%   large offset
+view_full_ptcloud = false;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Generate name of folder path to dataset
@@ -105,8 +110,6 @@ source_ptcloud = pcread(ptcloud_files{2,1});
 %source_ptcloud.ptcloud = pcread(ptcloud_files{2,1});
 %source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
 
-%gridStep = 0.1;
-
 % Make a temporary target point cloud for down-sampling
 target_ptcloud_temp.image = target_ptcloud.image;
 target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
@@ -132,16 +135,61 @@ for gridStep = 0.1:-0.001:0.01
     
 end
 
-% Read full target and source point clouds
-target_ptcloud_full = pcread(ptcloud_files{1,1});
-source_ptcloud_full = pcread(ptcloud_files{2,1});
-% Apply final transform to full source point cloud
-source_ptcloud_full_transformed = pctransform(source_ptcloud_full, rgbd_dvo.tform);
+% Plot full point clouds and transformed point clouds if true
+if view_full_ptcloud
+    % Generate filenames for the full point clouds
+    target_ptcloud_filename = ...
+        replace(ptcloud_files{1,1},'pcd_edge','pcd_full');
+    source_ptcloud_filename = ...
+        replace(ptcloud_files{2,1},'pcd_edge','pcd_full');
 
-% Plot point clouds on top of one another to show alignment
-pcshow(target_ptcloud_full)
-hold on
-pcshow(source_ptcloud_full_transformed)
+    % Read full target and source point clouds
+    target_ptcloud_full = pcread(target_ptcloud_filename);
+    source_ptcloud_full = pcread(source_ptcloud_filename);
+    % Apply final transform to full source point cloud
+    source_ptcloud_full_transformed = pctransform(source_ptcloud_full, rgbd_dvo.tform);
+
+    % Plot original point clouds on top of one another to show misalignment
+    figure(1)
+    pcshow(target_ptcloud_full)
+    hold on
+    pcshow(source_ptcloud_full)
+    view(0,-90)
+    title('Target and Source Point Clouds without Transform')
+
+    % Plot point clouds on top of one another to show improved alignment
+    figure(2)
+    pcshow(target_ptcloud_full)
+    hold on
+    pcshow(source_ptcloud_full_transformed)
+    view(0,-90)
+    title('Target and Source Point Clouds with Transform')
+
+% Otherwise, plot edge point clouds and transformed point clouds
+else
+    % Read full target and source point clouds
+    target_ptcloud_edge = pcread(ptcloud_files{1,1});
+    source_ptcloud_edge = pcread(ptcloud_files{2,1});
+    % Apply final transform to edge source point cloud
+    source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
+
+    % Plot original point clouds on top of one another to show misalignment
+    figure(1)
+    pcshow(target_ptcloud_edge)
+    hold on
+    pcshow(source_ptcloud_edge)
+    view(0,-90)
+    title('Target and Source Point Clouds without Transform')
+
+    % Plot point clouds on top of one another to show improved alignment
+    figure(2)
+    pcshow(target_ptcloud_edge)
+    hold on
+    pcshow(source_ptcloud_edge_transformed)
+    view(0,-90)
+    title('Target and Source Point Clouds with Transform')
+end
+
 disp('done')
 
 % Print transform
