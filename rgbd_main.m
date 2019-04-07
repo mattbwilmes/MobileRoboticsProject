@@ -116,14 +116,28 @@ target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
 % Make a temporary source point cloud for down-sampling
 source_ptcloud_temp = source_ptcloud;
 
+tic
 % Coarse-to-fine approach
-for gridStep = 0.1:-0.001:0.01
-%for gridStep = 0.1:-0.025:0.05
-
+for grid_step = 0.1:-0.001:0.01
+%for grid_step = 0.1:-0.01:0.01
+%for grid_step = 0.1:-0.025:0.05
+%for grid_step = [0.1 0.0 0.09 0.08 0.07 0.06 0.05 0.025 0.01 0.005 0.001]
+%grid_step = 0.1
+%while grid_step > 0.01
+    % Adjust tolerances based on value of grid_step
+    if mod(round(grid_step,4),0.01) == 0
+        rgbd_dvo.eps = 5*1e-5;
+        rgbd_dvo.eps_2 = 1e-5;
+        grid_step
+    else
+        rgbd_dvo.eps = 5*1e-4;
+        rgbd_dvo.eps_2 = 1e-4;
+        grid_step
+    end
     % Down-sample target point cloud
-    target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',gridStep);
+    target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',grid_step);
     % Down-sample source point cloud
-    source_ptcloud_temp = pcdownsample(source_ptcloud_temp,'gridAverage',gridStep);
+    source_ptcloud_temp = pcdownsample(source_ptcloud_temp,'gridAverage',grid_step);
 
 %     rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud);
     % Add the target and source point clouds to the object
@@ -131,9 +145,13 @@ for gridStep = 0.1:-0.001:0.01
     
     % Align the point clouds
     rgbd_dvo.align();
-    gridStep
+    grid_step
+    %grid_step = grid_step / 2
     
 end
+% rgbd_dvo.set_ptclouds(target_ptcloud,source_ptcloud)
+% rgbd_dvo.align();
+toc
 
 % Plot full point clouds and transformed point clouds if true
 if view_full_ptcloud

@@ -265,6 +265,8 @@ classdef rgbd_dvo < handle
                 % The point clouds are fixed (x) and moving (y)
                 % current transformation
                 obj.tform = affine3d([obj.R, obj.T; 0, 0, 0, 1]');
+                %obj.tform = affine3d(obj.tf_inv(obj.R,obj.T)');
+                
                 % Transform source point cloud to see if it matches target
                 % point cloud
                 moved = pctransform(obj.moving, obj.tform);
