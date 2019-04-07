@@ -118,11 +118,21 @@ source_ptcloud_temp = source_ptcloud;
 
 tic
 % Coarse-to-fine approach
-for grid_step = 0.1:-0.001:0.01
-%for grid_step = 0.1:-0.01:0.01
-%for grid_step = 0.1:-0.025:0.05
-%for grid_step = [0.1 0.0 0.09 0.08 0.07 0.06 0.05 0.025 0.01 0.005 0.001]
-%grid_step = 0.1
+%for grid_step = 0.1 % 0.5 seconds (47.8380)
+%for grid_step = 0.075:-0.0075:0.0525 % 1.5 seconds (43.0068)
+%for grid_step = 0.075:-0.005:0.05 % 3 seconds (36.7549)
+% for grid_step = [0.1 0.075 0.05] % 3 seconds (37.6854)
+%for grid_step = 0.1:-0.025:0.05 % 3 seconds (37.6854)
+%for grid_step = 0.1:-0.005:0.05 % 6.5 seconds (23.7367)
+%for grid_step = 0.1:-0.01:0.05 % 7.5 seconds (26.5427)
+%for grid_step = 0.1:-0.01:0.01 % 13 seconds (26.5427)
+%for grid_step = 0.1:-0.001:0.05 % 33 seconds (15.5972)
+%for grid_step = [0.1:-0.0005:0.075 0.07:-0.005:0.05] % 36 seconds (13.9701)
+%for grid_step = [0.1:-0.0005:0.075 0.07:-0.001:0.05] % 38 seconds (13.9701)
+%for grid_step = 0.1:-0.0005:0.05 % 44 seconds (13.9701)
+%for grid_step = [0.1:-0.00025:0.075 0.07:-0.005:0.05] % 63 seconds (13.4766)
+for grid_step = 0.1:-0.00025:0.05 % 75 seconds (13.2090)
+%for grid_step = 0.1:-0.001:0.01 % 290 seconds (15.5972)
 %while grid_step > 0.01
     % Adjust tolerances based on value of grid_step
     if mod(round(grid_step,4),0.01) == 0
