@@ -11,8 +11,8 @@ classdef rgbd_dvo < handle
         gradI;                  % intensity gradient
         MAX_ITER = 2000;        % maximum number of iteration
         % The program stops if norm(omega)+norm(v) < eps
-        eps = 5*1e-5;
-        eps_2 = 1e-5;
+        eps = 5*1e-4;
+        eps_2 = 1e-4;
         R = eye(3);             % initial orientation 
         T = zeros(3,1);         % initial translation
         omega;                  % so(3) part of twist

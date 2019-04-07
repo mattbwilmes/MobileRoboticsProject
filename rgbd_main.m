@@ -118,32 +118,34 @@ source_ptcloud_temp = source_ptcloud;
 
 tic
 % Coarse-to-fine approach
-%for grid_step = 0.1 % 0.5 seconds (47.8380)
-%for grid_step = 0.075:-0.0075:0.0525 % 1.5 seconds (43.0068)
-%for grid_step = 0.075:-0.005:0.05 % 3 seconds (36.7549)
-% for grid_step = [0.1 0.075 0.05] % 3 seconds (37.6854)
-%for grid_step = 0.1:-0.025:0.05 % 3 seconds (37.6854)
-%for grid_step = 0.1:-0.005:0.05 % 6.5 seconds (23.7367)
-%for grid_step = 0.1:-0.01:0.05 % 7.5 seconds (26.5427)
-%for grid_step = 0.1:-0.01:0.01 % 13 seconds (26.5427)
-%for grid_step = 0.1:-0.001:0.05 % 33 seconds (15.5972)
-%for grid_step = [0.1:-0.0005:0.075 0.07:-0.005:0.05] % 36 seconds (13.9701)
-%for grid_step = [0.1:-0.0005:0.075 0.07:-0.001:0.05] % 38 seconds (13.9701)
-%for grid_step = 0.1:-0.0005:0.05 % 44 seconds (13.9701)
-%for grid_step = [0.1:-0.00025:0.075 0.07:-0.005:0.05] % 63 seconds (13.4766)
-for grid_step = 0.1:-0.00025:0.05 % 75 seconds (13.2090)
-%for grid_step = 0.1:-0.001:0.01 % 290 seconds (15.5972)
+%for grid_step = 0.1 % 0.5 seconds (48.4059)
+%for grid_step = 0.075:-0.0075:0.0525 % 0.25 seconds (43.0068)
+%for grid_step = 0.075:-0.005:0.05 % 0.35 seconds (38.0234)
+%for grid_step = [0.1 0.075 0.05] % 0.4 seconds (38.6919)
+%for grid_step = 0.1:-0.025:0.05 % 0.4 seconds (38.6919)
+%for grid_step = 0.1:-0.01:0.05 % 0.5 seconds (26.2581)
+%for grid_step = 0.1:-0.01:0.01 % 1 seconds (26.2581)
+%for grid_step = 0.1:-0.005:0.01 % 1 seconds (24.8992)
+%for grid_step = 0.1:-0.001:0.05 % 3.5 seconds (15.7561)
+%for grid_step = 0.1:-0.001:0.01 % 5 seconds (15.5972) % e-4
+%for grid_step = [0.1:-0.0005:0.075 0.07:-0.005:0.05] % 7.5 seconds (14.1961)
+%for grid_step = [0.1:-0.0005:0.075 0.07:-0.001:0.05] % 10 seconds (14.1961)
+%for grid_step = 0.1:-0.0005:0.05 % 15 seconds (14.1961)
+%for grid_step = [0.1:-0.00025:0.075 0.07:-0.005:0.05] % 11 seconds (13.7761)
+for grid_step = 0.1:-0.00025:0.05 % 21 seconds (13.4703) % with e-4
+%for grid_step = 0.1:-0.00025:0.05 % 34 seconds (13.2090) % with e-5
+%for grid_step = 0.1:-0.001:0.01 % 290 seconds (15.5972) % no adjustable eps, at e-5
 %while grid_step > 0.01
     % Adjust tolerances based on value of grid_step
-    if mod(round(grid_step,4),0.01) == 0
-        rgbd_dvo.eps = 5*1e-5;
-        rgbd_dvo.eps_2 = 1e-5;
-        grid_step
-    else
-        rgbd_dvo.eps = 5*1e-4;
-        rgbd_dvo.eps_2 = 1e-4;
-        grid_step
-    end
+%     if mod(round(grid_step,4),0.05) == 100.234234 % change to 0 for better results
+%         rgbd_dvo.eps = 5*1e-5;
+%         rgbd_dvo.eps_2 = 1e-5;
+%         grid_step
+%     else
+%         rgbd_dvo.eps = 5*1e-4;
+%         rgbd_dvo.eps_2 = 1e-4;
+%         grid_step
+%     end
     % Down-sample target point cloud
     target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',grid_step);
     % Down-sample source point cloud
@@ -195,30 +197,31 @@ if view_full_ptcloud
 
 % Otherwise, plot edge point clouds and transformed point clouds
 else
-    % Read full target and source point clouds
-    target_ptcloud_edge = pcread(ptcloud_files{1,1});
-    source_ptcloud_edge = pcread(ptcloud_files{2,1});
-    % Apply final transform to edge source point cloud
-    source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
-
-    % Plot original point clouds on top of one another to show misalignment
-    figure(1)
-    pcshow(target_ptcloud_edge)
-    hold on
-    pcshow(source_ptcloud_edge)
-    view(0,-90)
-    title('Target and Source Point Clouds without Transform')
-
-    % Plot point clouds on top of one another to show improved alignment
-    figure(2)
-    pcshow(target_ptcloud_edge)
-    hold on
-    pcshow(source_ptcloud_edge_transformed)
-    view(0,-90)
-    title('Target and Source Point Clouds with Transform')
+%     % Read full target and source point clouds
+%     target_ptcloud_edge = pcread(ptcloud_files{1,1});
+%     source_ptcloud_edge = pcread(ptcloud_files{2,1});
+%     % Apply final transform to edge source point cloud
+%     source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
+% 
+%     % Plot original point clouds on top of one another to show misalignment
+%     figure(1)
+%     pcshow(target_ptcloud_edge)
+%     hold on
+%     pcshow(source_ptcloud_edge)
+%     view(0,-90)
+%     title('Target and Source Point Clouds without Transform')
+% 
+%     % Plot point clouds on top of one another to show improved alignment
+%     figure(2)
+%     pcshow(target_ptcloud_edge)
+%     hold on
+%     pcshow(source_ptcloud_edge_transformed)
+%     view(0,-90)
+%     title('Target and Source Point Clouds with Transform')
 end
 
 disp('done')
 
 % Print transform
 %rgbd_dvo.tform.T
+sum(rgbd_dvo.residual'*rgbd_dvo.residual)
