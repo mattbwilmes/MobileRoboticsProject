@@ -2,15 +2,32 @@
 %   Date:   January 1, 2019
 
 % Register Two Point Clouds
+dataset_name = 'freiburg1_xyz';
+% dataset_path = ...
+%     strcat('/path_to_your_dataset_folder/', ...
+%     dataset_name, '/');
+% TODO: Make this a custom path based on user
+dataset_path = ...
+    strcat('rgbd_tum/', ...
+    dataset_name, '/');
+pcd_full_path = strcat(dataset_path,'pcd_full')
+%assoc = import_assoc_file(assoc_filename);
+
+
 pcd_full_dir_info = dir(fullfile(pcd_full_path, '*.pcd'));
+
+assoc_filename = strcat(dataset_path, 'assoc.txt');
+% Load rows startRow to endRow (or 1 to end if not chosen)
+assoc = import_assoc_file(assoc_filename,1,2);
+
 % Make a cell of these filepath names
 num_pcd_files = length(pcd_full_dir_info);
 ptcloud_files = cell(num_pcd_files,2);
 for iter = 1:num_pcd_files    
     % Add .pcd file to ptcloud_files cell
     ptcloud_files{iter,1} = fullfile(pcd_full_path, pcd_full_dir_info(iter).name);
-    % Add corresponding rgb file to ptcloud_files cell
-    ptcloud_files{iter,2} = fullfile(dataset_path, assoc(iter,2));
+%     % Add corresponding rgb file to ptcloud_files cell
+%     ptcloud_files{iter,2} = fullfile(dataset_path, assoc(iter,2));
 end
 
 
