@@ -17,7 +17,7 @@ if __name__ == "__main__":
     img1_color = read_image("/media/psf/Dropbox/project_568/rgbd_dataset_freiburg1_xyz/rgb/1305031102.175304.png")
     img2_color = read_image("/media/psf/Dropbox/project_568/rgbd_dataset_freiburg1_xyz/rgb/1305031102.211214.png")
     img1_depth = read_image("/media/psf/Dropbox/project_568/rgbd_dataset_freiburg1_xyz/depth/1305031102.160407.png")
-    img2_depth = read_image("/media/psf/Dropbox/project_568/rgbd_dataset_freiburg1_xyz/depth/1305031102.194330.png")
+    img2_depth = read_image("/media/psf/Dropbox/project_568/rgbd_dataset_freiburg1_xyz/depth/1305031102.226738.png")
     # generate rgbd image from color and depth image
     rgbd_img1 = create_rgbd_image_from_tum_format(
         img1_color, img1_depth);
