@@ -1,3 +1,0 @@
-[submodule "simple_dvo-master/src/simple_dvo_submodule"]
-	path = simple_dvo-master/src/simple_dvo_submodule
-	url = https://github.com/muskie82/simple_dvo.git
