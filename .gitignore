@@ -4,3 +4,6 @@
 
 # ROS
 *.bag
+
+# MAC
+*.DS_Store
