@@ -11,9 +11,9 @@ C = reshape(cloud_in.Color,[], 3, 1);
 X = X(reshape(BW, [], 1), :);
 % Take only the values of C that were detected as edges by the Canny method
 C = C(reshape(BW, [], 1), :);
-% Remove all rows of X that are NaN (Not a Number)
-X = X(~isnan(X(:,1)),:);
 % Remove all rows of C that are NaN (Not a Number)
 C = C(~isnan(X(:,1)),:);
+% Remove all rows of X that are NaN (Not a Number)
+X = X(~isnan(X(:,1)),:);
 
 clout_out = pointCloud(X, 'Color', C);
