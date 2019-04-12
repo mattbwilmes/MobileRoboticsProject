@@ -1,5 +1,5 @@
 % Select the /tf file you want to read from
-tf_file = 'freiburg1_desk_tforms_newest.txt';
+tf_file = 'freiburg1_desk/freiburg1_desk_tforms_newest.txt';
 file_id = fopen(tf_file,'r');
 
 % Number of lines in one block of the rostopic
