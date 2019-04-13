@@ -9,7 +9,7 @@ classdef rgbd_dvo < handle
         fixed_image;            % fixed frame intensity image
         imgrad;                 % image intensity gradient
         gradI;                  % intensity gradient
-        MAX_ITER = 2000;        % maximum number of iteration
+        MAX_ITER = 500;        % maximum number of iteration
         % The program stops if norm(omega)+norm(v) < eps
         eps = 5*1e-4;
         eps_2 = 4*1e-4;
@@ -309,11 +309,15 @@ classdef rgbd_dvo < handle
                 end
                 
             end
+            % If MAX_ITER is reached, use the previous transformation
+            if k == obj.MAX_ITER
+                obj.R = obj.R_prev;
+                obj.T = obj.T_prev;
+            end
             % Save transformation
             obj.tform = affine3d([obj.R, obj.T; 0, 0, 0, 1]');
             % Save number of iterations
             obj.iterations = k;
-            end
         end
     end
 end
