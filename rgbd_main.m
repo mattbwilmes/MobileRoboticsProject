@@ -122,53 +122,26 @@ source_ptcloud_temp = source_ptcloud.ptcloud;
 
 tic
 % Coarse-to-fine approach
-%for grid_step = 0.05 % 0.3 seconds (121.1323) % Not a good comparison since resolution is bad
-%for grid_step = 0.1; % 0.5 seconds (48.4059) % Not a good comparison since resolution is bad
-%for grid_step = 0.075:-0.0075:0.0525 % 0.25 seconds (43.0068)
-%for grid_step = 0.075:-0.005:0.05 % 0.35 seconds (38.0234)
-%for grid_step = [0.1 0.075 0.05] % 0.4 seconds (38.6919)
-%for grid_step = 0.1:-0.025:0.05 % 0.4 seconds (38.6919)
-%for grid_step = 0.1:-0.01:0.05 % 0.5 seconds (26.2581)
-%for grid_step = 0.1:-0.01:0.01 % 1 seconds (26.2581)
-%for grid_step = 0.1:-0.005:0.05 % 1 seconds (24.8992)
-%for grid_step = 0.1:-0.001:0.05 % 3.5 seconds (15.7561)
-%for grid_step = 0.1:-0.001:0.01 % 5 seconds (15.5972) % e-4
-for grid_step = 0.1:-0.005:0.05 % Determined this is the best balance between speed and accuracy
-%for grid_step = [0.1 0.0975 0.0925 0.085 0.075 0.0625 0.0475]
-%for grid_step = [0.1:-0.005:0.075 0.07:-0.005:0.05] % 7.5 seconds (14.1961)
-%for grid_step = [0.1:-0.005:0.09 0.08:-0.005:0.07 0.06:-0.005:0.05] % 7.5 seconds (14.1961)
-%for grid_step = [0.1:-0.0005:0.075 0.07:-0.0001:0.05] % 10 seconds (14.1961)
-%for grid_step = 0.1:-0.0005:0.05 % 15 seconds (14.1961)
-%for grid_step = 0.1:-0.0001:0.05 % 38 seconds (13.8400) % despite smaller increments
-%for grid_step = [0.1:-0.00025:0.075 0.07:-0.005:0.05] % 11 seconds (13.7761)
-%for grid_step = 0.1:-0.00025:0.05 % 21 seconds (13.4703) % with e-4
-%for grid_step = [0.1:-0.00025:0.075 0.07:-0.0005:0.05] % 21 seconds (13.4703) % with e-4
-%for grid_step = [0.1:-0.0005:0.095 0.0945:-0.0005:0.075 ...
-%        0.0725:-0.00025:0.0625 0.062:-0.0005:0.05] % 21 seconds (13.4703) % with e-4
-%for grid_step = [0.1:-0.0005:0.095 0.0945:-0.0005:0.075 ...
-%        0.0725:-0.00025:0.0625 0.062:-0.0005:0.05] % 21 seconds (13.4703) % with e-4
-%for grid_step = 0.1:-0.00025:0.05 % 34 seconds (13.2090) % with e-5
-%for grid_step = 0.15:-0.00025:0.05 % 26 seconds (11.2096) % with e-4
-%for grid_step = 0.1:-0.001:0.01 % 290 seconds (15.5972) % no adjustable eps, at e-5
-%while grid_step > 0.01
+grid_step = 0.075;
+while grid_step > 1*1e-2
     % Down-sample target point cloud
     target_ptcloud_temp.ptcloud = ...
-        pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',grid_step);
+        pcdownsample(target_ptcloud.ptcloud,'gridAverage',grid_step);
     % Down-sample source point cloud
     source_ptcloud_temp = ...
-        pcdownsample(source_ptcloud_temp,'gridAverage',grid_step);
-
+        pcdownsample(source_ptcloud.ptcloud,'gridAverage',grid_step);
+ 
     % Add the target and source point clouds to the object
     rgbd_dvo.set_ptclouds(target_ptcloud_temp, source_ptcloud_temp);
     
     % Align the point clouds
     rgbd_dvo.align();
-    grid_step
-    %grid_step = grid_step / 2
+    
+    % Down-sample
+    grid_step = grid_step*0.85;
+    %rgbd_dvo.tform.T
     
 end
-% rgbd_dvo.set_ptclouds(target_ptcloud,source_ptcloud)
-% rgbd_dvo.align();
 toc
 
 % Plot full point clouds and transformed point clouds if true
@@ -229,7 +202,7 @@ end
 disp('done')
 
 % Print transform
-rgbd_dvo.tform.T
+%rgbd_dvo.tform.T
 sum(rgbd_dvo.residual'*rgbd_dvo.residual)
 
 % Choose the next target point cloud
@@ -245,5 +218,9 @@ source_ptcloud.image = rgb2gray(imread(ptcloud_files{i,2}));
 % Reset the predicted transformation matrix
 rgbd_dvo.R = eye(3);
 rgbd_dvo.T = zeros(3,1);
+rgbd_dvo.R_prev = eye(3);
+rgbd_dvo.T_prev = zeros(3,1);
+% Reset number of iterations
+rgdb_dvo.iterations = 0;
 
 end

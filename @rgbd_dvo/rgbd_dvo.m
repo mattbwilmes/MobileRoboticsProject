@@ -12,9 +12,11 @@ classdef rgbd_dvo < handle
         MAX_ITER = 2000;        % maximum number of iteration
         % The program stops if norm(omega)+norm(v) < eps
         eps = 5*1e-4;
-        eps_2 = 1e-4;
+        eps_2 = 4*1e-4;
         R = eye(3);             % initial orientation 
         T = zeros(3,1);         % initial translation
+        R_prev = eye(3);             % initial orientation 
+        T_prev = zeros(3,1);         % initial translation
         omega;                  % so(3) part of twist
         v;                      % R^3 part of twist
         tform;                  % SE(3) tf
@@ -103,8 +105,8 @@ classdef rgbd_dvo < handle
                 obj.u_max = size(target.image,2);
                 obj.v_max = size(target.image,1);
                 obj.intensity_y = obj.rgb2intensity(source.Color);
-                obj.R = eye(3);
-                obj.T = zeros(3,1);
+%                 obj.R = eye(3);
+%                 obj.T = zeros(3,1);
             else
                 error('Provide target and source point clouds as inputs');
             end
@@ -112,8 +114,8 @@ classdef rgbd_dvo < handle
         
         function projection(obj)
             %{
-            - The color images are stored as 640×480 8-bit RGB images in PNG format.
-            - The depth maps are stored as 640×480 16-bit monochrome images in PNG format.
+            - The color images are stored as 640x480 8-bit RGB images in PNG format.
+            - The depth maps are stored as 640x480 16-bit monochrome images in PNG format.
             - The color and depth images are already pre-registered using the OpenNI
             driver from PrimeSense, i.e., the pixels in the color and depth images
             correspond already 1:1.
@@ -148,10 +150,10 @@ classdef rgbd_dvo < handle
                 Y = (v - cy) * Z / fy;
 
             Camera          fx      fy      cx      cy      d0      d1      d2      d3      d4
-            (ROS default)	525.0	525.0	319.5	239.5	0.0     0.0     0.0     0.0     0.0
-            Freiburg 1 RGB	517.3	516.5	318.6	255.3	0.2624	-0.9531	-0.0054	0.0026	1.1633
-            Freiburg 2 RGB	520.9	521.0	325.1	249.7	0.2312	-0.7849	-0.0033	-0.0001	0.9172
-            Freiburg 3 RGB	535.4	539.2	320.1	247.6	0       0       0       0       0
+            (ROS default)   525.0   525.0   319.5   239.5   0.0     0.0     0.0     0.0     0.0
+            Freiburg 1 RGB  517.3   516.5   318.6   255.3   0.2624  -0.9531 -0.0054 0.0026  1.1633
+            Freiburg 2 RGB  520.9   521.0   325.1   249.7   0.2312  -0.7849 -0.0033 -0.0001 0.9172
+            Freiburg 3 RGB  535.4   539.2   320.1   247.6   0       0       0       0       0
 
             For more information see: https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats
             %}
@@ -205,7 +207,6 @@ classdef rgbd_dvo < handle
 %             obj.intensity_x = diag(obj.fixed_image(obj.V, obj.U));
             
             if isempty(obj.Kf)
-                % [fx 0; 0 fy] * (1/x3) * [1 0 -x1/x3; 0 1 -x2/x3]
                 obj.Kf = @(x) [fx/x(3), 0    , -(fx*x(1))/x(3)^2;
                                0    , fy/x(3), -(fy*x(2))/x(3)^2];
             end
@@ -237,29 +238,19 @@ classdef rgbd_dvo < handle
             % Commented out inefficient code
 %             obj.gradI.u = diag(obj.imgrad.u(obj.V, obj.U));
 %             obj.gradI.v = diag(obj.imgrad.v(obj.V, obj.U));
-                        
-%             obj.J = zeros(1,6);
+
             x = obj.cloud_y(~obj.invalid_points, :);
             obj.J = zeros(size(x,1),6);
-            % apply Cauchy loss
-%             obj.alpha = 4;
             for i = 1:size(x,1)
-%                 try
                 Jc = obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
-%                 obj.J = obj.J + 1/(obj.residual(i)/obj.alpha + 1) * [obj.gradI.u(i), obj.gradI.v(i)] *...
-%                     Jc; % obj.Kf(x(i,:)) * [eye(3), -obj.hat(x(i,:))];
-%                 obj.J = [obj.J; obj.gradI.u(i), obj.gradI.v(i)] * Jc]];
                 obj.J(i,:) = [obj.gradI.u(i), obj.gradI.v(i)] * Jc;
-%                 catch
-%                     keyboard;
-%                 end
             end
-            % correct residuals based on Cauchy loss
-%             obj.residual = obj.alpha * log(1 + (obj.residual/obj.alpha));
         end
         
         function align(obj)
             % Aligns two RGBD point clouds
+            % Reset step
+            dt = 1;
             for k = 1:obj.MAX_ITER
                 % construct omega and v
                 % The point clouds are fixed (x) and moving (y)
@@ -280,18 +271,19 @@ classdef rgbd_dvo < handle
                 % compute step size for integrating the flow
 %                 obj.compute_step_size;
 %                 dt = obj.step;
-                %dt = 0.2;
-                dt = 1;
+
                 twist = dt * (obj.J' * obj.J) \ obj.J' * obj.residual;
-%                 twist = dt * (obj.J' * obj.J + 1e-5*eye(6)) \ obj.J' * sum(obj.residual);
                 obj.v = twist(1:3);
                 obj.omega = twist(4:6);
-%                 obj.v = twist(1:3);
-%                 obj.omega = twist(4:6);
                 
                 % Stop if the step size is too small
                 if max(norm(obj.omega),norm(obj.v)) < obj.eps
-                    break;
+                    dt = dt*0.75;
+                    if dt < 0.75
+                        obj.R = obj.R_prev;
+                        obj.T = obj.T_prev;
+                        break;
+                    end
                 end
                 
                 % Integrating
@@ -301,8 +293,7 @@ classdef rgbd_dvo < handle
                 dT = (dt * eye(3) + ...
                     (1-cos(dt * th)) / (th^2) * homega + ...
                     ((dt * th - sin(dt * th)) / th^3) * homega^2) * obj.v;
-%                 R_new = obj.R * dR;
-%                 T_new = obj.R * dT + obj.T;
+                
                 R_new = dR * obj.R;
                 T_new = dR * obj.T + dT;
                 
@@ -312,16 +303,17 @@ classdef rgbd_dvo < handle
                 
                 % Our other break
                 if obj.dist_se3(dR,dT) < obj.eps_2
+                    obj.R_prev = obj.R;
+                    obj.T_prev = obj.T;
                     break;
                 end
                 
-%                     disp([k,max(norm(obj.omega),norm(obj.v)),obj.eps,obj.dist_se3(dR,dT),obj.eps_2]);
-                
             end
-            
+            % Save transformation
             obj.tform = affine3d([obj.R, obj.T; 0, 0, 0, 1]');
-%             obj.tform = affine3d(obj.tf_inv(obj.R, obj.T)');
+            % Save number of iterations
             obj.iterations = k;
+            end
         end
     end
 end
