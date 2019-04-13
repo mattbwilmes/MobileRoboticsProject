@@ -100,21 +100,25 @@ rgbd_dvo = rgbd_dvo();
 
 % Load first .pcd file as the target (fixed) point cloud
 target_ptcloud = [];
-% % Load the point cloud
+% % Load the target point cloud
 target_ptcloud.ptcloud = pcread(ptcloud_files{1,1});
 % % Load the corresponding rgb image as grayscale
 target_ptcloud.image = rgb2gray(imread(ptcloud_files{1,2}));
 % Load second .pcd file as the source (moving) point cloud
-source_ptcloud = pcread(ptcloud_files{2,1});
-%source_ptcloud = [];
-%source_ptcloud.ptcloud = pcread(ptcloud_files{2,1});
-%source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
+%source_ptcloud = pcread(ptcloud_files{2,1});
+source_ptcloud = [];
+% % Load the source point cloud
+source_ptcloud.ptcloud = pcread(ptcloud_files{2,1});
+% % Load the corresponding rgb image as grayscale
+source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
+
+for i = 3:4
 
 % Make a temporary target point cloud for down-sampling
-target_ptcloud_temp.image = target_ptcloud.image;
 target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
+target_ptcloud_temp.image = target_ptcloud.image;
 % Make a temporary source point cloud for down-sampling
-source_ptcloud_temp = source_ptcloud;
+source_ptcloud_temp = source_ptcloud.ptcloud;
 
 tic
 % Coarse-to-fine approach
@@ -129,7 +133,10 @@ tic
 %for grid_step = 0.1:-0.005:0.05 % 1 seconds (24.8992)
 %for grid_step = 0.1:-0.001:0.05 % 3.5 seconds (15.7561)
 %for grid_step = 0.1:-0.001:0.01 % 5 seconds (15.5972) % e-4
-for grid_step = [0.1:-0.005:0.075 0.07:-0.005:0.05] % 7.5 seconds (14.1961)
+for grid_step = 0.1:-0.005:0.05 % Determined this is the best balance between speed and accuracy
+%for grid_step = [0.1 0.0975 0.0925 0.085 0.075 0.0625 0.0475]
+%for grid_step = [0.1:-0.005:0.075 0.07:-0.005:0.05] % 7.5 seconds (14.1961)
+%for grid_step = [0.1:-0.005:0.09 0.08:-0.005:0.07 0.06:-0.005:0.05] % 7.5 seconds (14.1961)
 %for grid_step = [0.1:-0.0005:0.075 0.07:-0.0001:0.05] % 10 seconds (14.1961)
 %for grid_step = 0.1:-0.0005:0.05 % 15 seconds (14.1961)
 %for grid_step = 0.1:-0.0001:0.05 % 38 seconds (13.8400) % despite smaller increments
@@ -144,22 +151,13 @@ for grid_step = [0.1:-0.005:0.075 0.07:-0.005:0.05] % 7.5 seconds (14.1961)
 %for grid_step = 0.15:-0.00025:0.05 % 26 seconds (11.2096) % with e-4
 %for grid_step = 0.1:-0.001:0.01 % 290 seconds (15.5972) % no adjustable eps, at e-5
 %while grid_step > 0.01
-    % Adjust tolerances based on value of grid_step
-%     if mod(round(grid_step,4),0.025) == 0 % change to 0 for better results
-%         rgbd_dvo.eps = 5*1e-5;
-%         rgbd_dvo.eps_2 = 1e-5;
-%         grid_step
-%     else
-%         rgbd_dvo.eps = 5*1e-4;
-%         rgbd_dvo.eps_2 = 1e-4;
-%         grid_step
-%     end
     % Down-sample target point cloud
-    target_ptcloud_temp.ptcloud = pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',grid_step);
+    target_ptcloud_temp.ptcloud = ...
+        pcdownsample(target_ptcloud_temp.ptcloud,'gridAverage',grid_step);
     % Down-sample source point cloud
-    source_ptcloud_temp = pcdownsample(source_ptcloud_temp,'gridAverage',grid_step);
+    source_ptcloud_temp = ...
+        pcdownsample(source_ptcloud_temp,'gridAverage',grid_step);
 
-%     rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud);
     % Add the target and source point clouds to the object
     rgbd_dvo.set_ptclouds(target_ptcloud_temp, source_ptcloud_temp);
     
@@ -188,7 +186,7 @@ if view_full_ptcloud
     source_ptcloud_full_transformed = pctransform(source_ptcloud_full, rgbd_dvo.tform);
 
     % Plot original point clouds on top of one another to show misalignment
-    figure(1)
+    figure(2*i-1)
     pcshow(target_ptcloud_full)
     hold on
     pcshow(source_ptcloud_full)
@@ -196,7 +194,7 @@ if view_full_ptcloud
     title('Target and Source Point Clouds without Transform')
 
     % Plot point clouds on top of one another to show improved alignment
-    figure(2)
+    figure(2*i)
     pcshow(target_ptcloud_full)
     hold on
     pcshow(source_ptcloud_full_transformed)
@@ -205,14 +203,14 @@ if view_full_ptcloud
 
 % Otherwise, plot edge point clouds and transformed point clouds
 else
-%     % Read full target and source point clouds
+    % Read full target and source point clouds
     target_ptcloud_edge = pcread(ptcloud_files{1,1});
     source_ptcloud_edge = pcread(ptcloud_files{2,1});
     % Apply final transform to edge source point cloud
     source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
 
     % Plot original point clouds on top of one another to show misalignment
-    figure(1)
+    figure(2*i-1)
     pcshow(target_ptcloud_edge)
     hold on
     pcshow(source_ptcloud_edge)
@@ -220,7 +218,7 @@ else
     title('Target and Source Point Clouds without Transform')
 
     % Plot point clouds on top of one another to show improved alignment
-    figure(2)
+    figure(2*i)
     pcshow(target_ptcloud_edge)
     hold on
     pcshow(source_ptcloud_edge_transformed)
@@ -231,5 +229,21 @@ end
 disp('done')
 
 % Print transform
-%rgbd_dvo.tform.T
+rgbd_dvo.tform.T
 sum(rgbd_dvo.residual'*rgbd_dvo.residual)
+
+% Choose the next target point cloud
+% % The source point cloud is now the target point cloud for the next pair
+target_ptcloud.ptcloud = source_ptcloud.ptcloud;
+% % Assocaite the proper grayscale image
+target_ptcloud.image = source_ptcloud.image;
+% Load the next source point cloud
+source_ptcloud.ptcloud = pcread(ptcloud_files{i,1});
+% % Load the corresponding rgb image as grayscale
+source_ptcloud.image = rgb2gray(imread(ptcloud_files{i,2}));
+
+% Reset the predicted transformation matrix
+rgbd_dvo.R = eye(3);
+rgbd_dvo.T = zeros(3,1);
+
+end
