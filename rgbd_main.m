@@ -209,15 +209,19 @@ for index_source_ptcloud = 2:num_pcd_files
     %rgbd_dvo.tform.T
     %sum(rgbd_dvo.residual'*rgbd_dvo.residual)
 
-    % Choose the next target point cloud
-    % % The source point cloud is now the target point cloud for the next pair
-    target_ptcloud.ptcloud = source_ptcloud.ptcloud;
-    % % Assocaite the proper grayscale image
-    target_ptcloud.image = source_ptcloud.image;
-    % Load the next source point cloud
-    source_ptcloud.ptcloud = pcread(ptcloud_files{index_source_ptcloud+1,1});
-    % % Load the corresponding rgb image as grayscale
-    source_ptcloud.image = rgb2gray(imread(ptcloud_files{index_source_ptcloud+1,2}));
+    
+    % Set up for the next iteration, unless there is no next iteration
+    if index_source_ptcloud ~= num_pcd_files
+        % Choose the next target point cloud
+        % % The source point cloud is now the target point cloud for the next pair
+        target_ptcloud.ptcloud = source_ptcloud.ptcloud;
+        % % Assocaite the proper grayscale image
+        target_ptcloud.image = source_ptcloud.image;
+        % Load the next source point cloud
+        source_ptcloud.ptcloud = pcread(ptcloud_files{index_source_ptcloud+1,1});
+        % % Load the corresponding rgb image as grayscale
+        source_ptcloud.image = rgb2gray(imread(ptcloud_files{index_source_ptcloud+1,2}));
+    end
 
     % Reset the predicted transformation matrix
     rgbd_dvo.R = eye(3);
@@ -228,7 +232,7 @@ for index_source_ptcloud = 2:num_pcd_files
     rgdb_dvo.iterations = 0;
 
     % The timestamp is the filename of the source point cloud (minus the extension)
-    timestamp = str2double(pcd_edge_dir_info(index_source_ptcloud).name(1:end-4));
+    timestamp = str2double(pcd_edge_dir_info(index_source_ptcloud-1).name(1:end-4));
     % Add timestamp to transformation cell
     transformation{index_source_ptcloud-1,1} = timestamp;
     % Add final transformation to corresponding cell
