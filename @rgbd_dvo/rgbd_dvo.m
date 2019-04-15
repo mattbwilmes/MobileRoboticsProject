@@ -12,7 +12,7 @@ classdef rgbd_dvo < handle
         MAX_ITER = 500;        % maximum number of iteration
         % The program stops if norm(omega)+norm(v) < eps
         eps = 5*1e-4;
-        eps_2 = 4*1e-4;
+        eps_2 = 1e-4;
         R = eye(3);             % initial orientation 
         T = zeros(3,1);         % initial translation
         R_prev = eye(3);             % initial orientation 
@@ -36,6 +36,10 @@ classdef rgbd_dvo < handle
         invalid_points;         % invalid points after projection
         Kf;                     % intrinsic matrix of focal lengths
         residual;
+        fx;                     % focal length x
+        fy;                     % focal length y
+        cx;                     % optical center x
+        cy;                     % optical center y
 %         alpha;                  % Cauchy loss parameter
     end
     
@@ -77,10 +81,19 @@ classdef rgbd_dvo < handle
     methods
         function obj = rgbd_dvo(varargin)
             % RGBD_DVO Construct an instance of this class
-            if nargin == 2
+            if nargin == 6
                 disp('Initial transformation is set.');
                 obj.R = varargin{1};
                 obj.T = varargin{2};
+                obj.fx = varargin{1};
+                obj.fy = varargin{2};
+                obj.cx = varargin{3};
+                obj.cy = varargin{4};
+            elseif nargin == 4
+                obj.fx = varargin{1};
+                obj.fy = varargin{2};
+                obj.cx = varargin{3};
+                obj.cy = varargin{4};
             elseif nargin > 0
                 warning('The inputs are ignored!');
             end
@@ -111,6 +124,43 @@ classdef rgbd_dvo < handle
                 error('Provide target and source point clouds as inputs');
             end
         end
+        
+        function set_scaled_ptclouds(obj, target, source, scale, varargin)
+            if nargin == 4             
+                obj.fixed = target.ptcloud;
+                % Scale point cloud
+                scale_matrix = [scale 0     0     0;
+                                0     scale 0     0;
+                                0     0     scale 0;
+                                0     0     0     1];
+                affine3d_scale = affine3d(scale_matrix);
+%                obj.fixed.Location = obj.fixed.Location * scale;
+                obj.fixed = pctransform(obj.fixed, affine3d_scale);
+                target.image = imresize(target.image, scale);
+                if any(target.image > 1)
+                    target.image = double(target.image) / 255;
+                end
+                obj.fixed_image = target.image;
+                % compute image intensity gradient
+                [Gmag,Gdir] = imgradient(obj.fixed_image);
+                obj.imgrad.u = Gmag .* cosd(Gdir);
+                obj.imgrad.v = Gmag .* sind(Gdir);
+                obj.imgrad.mag = Gmag;
+                obj.imgrad.dir = Gdir;
+                obj.moving = source;
+                %obj.moving.Location = obj.moving.Location * scale;
+                obj.moving = pctransform(obj.moving, affine3d_scale);
+                obj.cloud_x = double(obj.fixed.Location);
+                obj.u_max = size(target.image,2);
+                obj.v_max = size(target.image,1);
+                obj.intensity_y = obj.rgb2intensity(source.Color);
+%                 obj.R = eye(3);
+%                 obj.T = zeros(3,1);
+            else
+                error('Provide target and source point clouds and scale as inputs');
+            end
+        end
+        
         
         function projection(obj)
             %{
@@ -171,10 +221,10 @@ classdef rgbd_dvo < handle
 %             cy = 240;  % optical center y
             
             % Freiburg 1
-            fx = 517.3;  % focal length x
-            fy = 516.5;  % focal length y
-            cx = 318.6;  % optical center x
-            cy = 255.3;  % optical center y
+%             fx = 517.3;  % focal length x
+%             fy = 516.5;  % focal length y
+%             cx = 318.6;  % optical center x
+%             cy = 255.3;  % optical center y
             
             % Freiburg 2
 %             fx = 520.9;  % focal length x
@@ -188,8 +238,8 @@ classdef rgbd_dvo < handle
 %             cx = 320.1;  % optical center x
 %             cy = 247.6;  % optical center y
             
-            obj.U = obj.cloud_y(:,1) * fx ./ obj.cloud_y(:,3) + cx;
-            obj.V = obj.cloud_y(:,2) * fy ./ obj.cloud_y(:,3) + cy;
+            obj.U = obj.cloud_y(:,1) * obj.fx ./ obj.cloud_y(:,3) + obj.cx;
+            obj.V = obj.cloud_y(:,2) * obj.fy ./ obj.cloud_y(:,3) + obj.cy;
             % remove out of frame projected points
             obj.invalid_points = obj.U < 0.5 | obj.U > obj.u_max | obj.V < 0.5 | obj.V > obj.v_max;
             obj.U = round(obj.U);
@@ -206,10 +256,10 @@ classdef rgbd_dvo < handle
             % Commented out inefficient code
 %             obj.intensity_x = diag(obj.fixed_image(obj.V, obj.U));
             
-            if isempty(obj.Kf)
-                obj.Kf = @(x) [fx/x(3), 0    , -(fx*x(1))/x(3)^2;
-                               0    , fy/x(3), -(fy*x(2))/x(3)^2];
-            end
+            %if isempty(obj.Kf)
+            obj.Kf = @(x) [obj.fx/x(3), 0          , -(obj.fx*x(1))/x(3)^2;
+                           0          , obj.fy/x(3), -(obj.fy*x(2))/x(3)^2];
+            %end
             % Make sure intensities are between 0 and 1
             if any(obj.intensity_x > 1)
                 obj.intensity_x = double(obj.intensity_x)/255;
@@ -280,8 +330,8 @@ classdef rgbd_dvo < handle
                 if max(norm(obj.omega),norm(obj.v)) < obj.eps
                     dt = dt*0.75;
                     if dt < 0.75
-                        obj.R = obj.R_prev;
-                        obj.T = obj.T_prev;
+                        obj.R_prev = obj.R;
+                        obj.T_prev = obj.T;
                         break;
                     end
                 end

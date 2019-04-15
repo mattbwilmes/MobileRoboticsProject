@@ -119,35 +119,89 @@ source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
 
 total_time = total_time + toc;
 % Index from the second .pcd to the last .pcd
-for index_source_ptcloud = 2:num_pcd_files
+for index_source_ptcloud = 2
     tic
     % Make a temporary target point cloud for down-sampling
-    target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
-    target_ptcloud_temp.image = target_ptcloud.image;
-    % Make a temporary source point cloud for down-sampling
-    source_ptcloud_temp = source_ptcloud.ptcloud;
+%     target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
+%     target_ptcloud_temp.image = target_ptcloud.image;
+%     % Make a temporary source point cloud for down-sampling
+%     source_ptcloud_temp = source_ptcloud.ptcloud;
 
     % tic
     % Coarse-to-fine approach
-    grid_step = 0.075;
-    while grid_step > 1*1e-2
-        % Down-sample target point cloud
-        target_ptcloud_temp.ptcloud = ...
-            pcdownsample(target_ptcloud.ptcloud,'gridAverage',grid_step);
-        % Down-sample source point cloud
-        source_ptcloud_temp = ...
-            pcdownsample(source_ptcloud.ptcloud,'gridAverage',grid_step);
+    %grid_step = 0.005; 
+    %while grid_step > 1*1e-2
+    
+    % Down-sample target point cloud
+    target_ptcloud_downsampled.ptcloud = ...
+        target_ptcloud.ptcloud;
+        %pcdownsample(target_ptcloud.ptcloud,'gridAverage',grid_step);
+        
+    % Down-sample source point cloud
+    source_ptcloud_downsampled = ...
+        source_ptcloud.ptcloud;
+        %pcdownsample(source_ptcloud.ptcloud,'gridAverage',grid_step);
 
-        % Add the target and source point clouds to the object
-        rgbd_dvo.set_ptclouds(target_ptcloud_temp, source_ptcloud_temp);
 
+    % Add corresponding image to down-sampled target point cloud struct
+    target_ptcloud_downsampled.image = target_ptcloud.image;
+    
+    % Add the target and source point clouds to the object
+    %rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud_temp);
+
+    for scale = [0.0625 0.125 0.25 0.5 1]
+        
+        % Scale the camera parameters in proportion with the camera image
+        rgbd_dvo.fx = fx * scale;
+        rgbd_dvo.fy = fy * scale;
+        rgbd_dvo.cx = cx * scale;
+        rgbd_dvo.cy = cy * scale;
+        
+        % Set point clouds as normal if no scaling required
+        if scale == 1
+            rgbd_dvo.set_ptclouds( ...
+                target_ptcloud_downsampled, source_ptcloud_downsampled);
+        % Otherwise implement modified function to scale necessary variables
+        else
+            rgbd_dvo.set_scaled_ptclouds( ...
+                target_ptcloud_downsampled, source_ptcloud_downsampled, scale);
+        end
+        % Down-sample the target image
+%         rgbd_dvo.fixed_image = imresize(target_ptcloud.image, scale);
+%         rgbd_dvo.u_max = size(rgbd_dvo.fixed_image,2);
+%         rgbd_dvo.v_max = size(rgbd_dvo.fixed_image,1);
+%         % Down-smple the target gradient
+% %         rgbd_dvo.
+% 
+%         %[Gmag,Gdir] = imresize(imgradient(target_ptcloud.image), scale);
+%         [Gmag,Gdir] = imgradient(imresize(target_ptcloud.image, scale));
+%         rgbd_dvo.imgrad.u = Gmag .* cosd(Gdir);
+%         rgbd_dvo.imgrad.v = Gmag .* sind(Gdir);
+%         rgbd_dvo.imgrad.mag = Gmag;
+%         rgbd_dvo.imgrad.dir = Gdir;
+% 
+%         % Scale the point clouds
+%         rgbd_dvo
+        
+%         imresize(source_ptcloud.image
+%         rgbd_dvo.rgb2intensity(source.Color)
         % Align the point clouds
         rgbd_dvo.align();
-
+        rgbd_dvo.tform.T
         % Down-sample
-        grid_step = grid_step*0.85;
-
+        %grid_step = grid_step*0.85;
     end
+
+    % Reset the camera parameters
+%     rgbd_dvo.fx = fx;
+%     rgbd_dvo.fy = fy;
+%     rgbd_dvo.cx = cx;
+%     rgbd_dvo.cy = cy;
+%     
+%     % Reset the image dimensions
+%     rgbd_dvo.u_max = size(target_ptcloud.image,2);
+%     rgbd_dvo.v_max = size(target_ptcloud.image,1);
+    
     % loop_time = toc;
     % total_time = total_time + loop_time
 
@@ -183,32 +237,31 @@ for index_source_ptcloud = 2:num_pcd_files
 
     % Otherwise, plot edge point clouds and transformed point clouds
     else
-    %     % Read full target and source point clouds
-    %     target_ptcloud_edge = pcread(ptcloud_files{1,1});
-    %     source_ptcloud_edge = pcread(ptcloud_files{2,1});
-    %     % Apply final transform to edge source point cloud
-    %     source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
-    % 
-    %     % Plot original point clouds on top of one another to show misalignment
-    %     figure(2*index_source_ptcloud-1)
-    %     pcshow(target_ptcloud_edge)
-    %     hold on
-    %     pcshow(source_ptcloud_edge)
-    %     view(0,-90)
-    %     title('Target and Source Point Clouds without Transform')
-    % 
-    %     % Plot point clouds on top of one another to show improved alignment
-    %     figure(2*index_source_ptcloud)
-    %     pcshow(target_ptcloud_edge)
-    %     hold on
-    %     pcshow(source_ptcloud_edge_transformed)
-    %     view(0,-90)
-    %     title('Target and Source Point Clouds with Transform')
+        % Read full target and source point clouds
+        target_ptcloud_edge = pcread(ptcloud_files{1,1});
+        source_ptcloud_edge = pcread(ptcloud_files{2,1});
+        % Apply final transform to edge source point cloud
+        source_ptcloud_edge_transformed = pctransform(source_ptcloud_edge, rgbd_dvo.tform);
+    
+        % Plot original point clouds on top of one another to show misalignment
+        figure(2*index_source_ptcloud-1)
+        pcshow(target_ptcloud_edge)
+        hold on
+        pcshow(source_ptcloud_edge)
+        view(0,-90)
+        title('Target and Source Point Clouds without Transform')
+    
+        % Plot point clouds on top of one another to show improved alignment
+        figure(2*index_source_ptcloud)
+        pcshow(target_ptcloud_edge)
+        hold on
+        pcshow(source_ptcloud_edge_transformed)
+        view(0,-90)
+        title('Target and Source Point Clouds with Transform')
     end
 
-    %rgbd_dvo.tform.T
-    %sum(rgbd_dvo.residual'*rgbd_dvo.residual)
-
+    rgbd_dvo.tform.T
+    sum(rgbd_dvo.residual'*rgbd_dvo.residual)
     
     % Set up for the next iteration, unless there is no next iteration
     if index_source_ptcloud ~= num_pcd_files
