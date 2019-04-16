@@ -7,3 +7,6 @@
 
 # MAC
 *.DS_Store
+
+# OTHER
+*.png
