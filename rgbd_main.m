@@ -41,7 +41,7 @@ cy = 255.3;  % optical center y
 scaling_factor = 5000;  % depth scaling factor
 
 % % TODO: Make this a custom path based on user
-% Path to the folder container your rgbd_tum datasets
+% Path to the folder containing your rgbd_tum datasets
 rgbd_tum_path = ...
     '/Users/MatthewWilmes/Documents/MATLAB/School/EECS568_MATLAB/Project/rgbd_tum/';
 % Select the dataset you want to use
