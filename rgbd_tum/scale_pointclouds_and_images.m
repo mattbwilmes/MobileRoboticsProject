@@ -11,7 +11,7 @@ Date: 04-15-19
 %}
 
 % load association file, i.e., matched RGB and Depth timestamps
-assoc_filename = strcat(dataset_path,'assoc.txt');
+assoc_filename = strcat(dataset_path,'scale_1/','assoc.txt');
 % Load rows startRow to endRow (or 1 to end if not chosen)
 assoc = import_assoc_file(assoc_filename, start_row, end_row);
 %assoc = import_assoc_file(assoc_filename);
@@ -35,7 +35,7 @@ for i = 1:size(assoc,1)
 %    pc_name = assoc(i,1); % using RGB image timestamp
    
     % load RGB image
-    rgb = imread(strcat(dataset_path, assoc(i,2)));
+    rgb = imread(strcat(dataset_path,'scale_1/',assoc(i,2)));
    
     % Down-sample rgb images based on scale_vec
     for scale = scale_vec
@@ -49,7 +49,7 @@ for i = 1:size(assoc,1)
     end
    
     % load Depth image
-    depth = double(imread(strcat(dataset_path, assoc(i,4))));
+    depth = double(imread(strcat(dataset_path,'scale_1/',assoc(i,4))));
     % Set all zeros to NaN
     depth(depth == 0) = NaN;
     
