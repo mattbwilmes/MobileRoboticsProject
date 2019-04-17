@@ -6,8 +6,17 @@ The user must download the dataset as a .tgz file and unzip it in the
 proper folder structure:
 -->dataset_path
 ---->dataset_name
------->unzipped contents of .tgz file
------->assoc.txt (provided by user)
+------>scale_1
+-------->unzipped contents of .tgz file
+-------->assoc.txt (provided by user)
+------>scale_05
+-------->rgb
+-------->pcd_edge
+------>scale_025
+-------->rgb
+-------->pcd_edge
+------>etc.
+
 
 %Author: Matt Wilmes
 %Date: 03-24-2019
@@ -38,7 +47,13 @@ cy = 255.3;  % optical center y
 % cx = 320.1;  % optical center x
 % cy = 247.6;  % optical center y
 
-scaling_factor = 5000;  % depth scaling factor
+% Number of times to down-scale the images
+% The resulting scale_vec will start with 1 and divide by factor of 2 scale_num times
+% e.g. scale_num = 4 --> [1 0.5 0.25 0.125 0.0625]
+%scale_num = 4;
+scale_num = 2;
+
+depth_scaling_factor = 5000;  % depth scaling factor
 
 % % TODO: Make this a custom path based on user
 % Path to the folder containing your rgbd_tum datasets
@@ -67,21 +82,42 @@ total_time = 0;
 
 % Generate name of folder path to dataset
 dataset_path = strcat(rgbd_tum_path, dataset_name, '/');
-% Generate names of folders to .pcd files
-pcd_full_path = strcat(dataset_path,'pcd_full');
-pcd_edge_path = strcat(dataset_path,'pcd_edge');
+% Generate names of folders to full .pcd files
+pcd_full_path = strcat(dataset_path,'scale_1/pcd_full');
+
+% Create vector of down-scale values
+scale_vec = zeros(1,scale_num);
+for power = 1:scale_num
+    scale_vec(power) = 1/(2^power);
+end
+scale_vec = [1 scale_vec];
+
+% TODO: Hard-coded for now, need to make this adaptable
+%scale_folder = {'scale_1/','scale_05/','scale_025/','scale_0125/','scale_00625/'};
+scale_folder = {'scale_1/','scale_05/','scale_025/'};
+
+pcd_edge_path = cell(length(scale_folder),1);
+% TODO: Hard-coded for now, need to make this adaptable
+% Generate names of folders to edge .pcd files
+pcd_edge_path{1} = strcat(dataset_path,'scale_1/pcd_edge');
+pcd_edge_path{2} = strcat(dataset_path,'scale_05/pcd_edge');
+pcd_edge_path{3} = strcat(dataset_path,'scale_025/pcd_edge');
+pcd_edge_path{4} = strcat(dataset_path,'scale_0125/pcd_edge');
+pcd_edge_path{5} = strcat(dataset_path,'scale_00625/pcd_edge');
 
 % Generate .pcd files from dataset if true
 if make_pcd_files
-    generate_pointclouds(fx, fy, cx, cy, scaling_factor, ...
+    generate_pointclouds(fx, fy, cx, cy, depth_scaling_factor, ...
         dataset_path, pcd_full_path, pcd_edge_path, start_row, end_row);
+    scale_pointclouds_and_images(fx, fy, cx, cy, depth_scaling_factor, ...
+        scale_num, dataset_path, start_row, end_row);
 end
 
 % Get the directory info of all .pcd files in the pcd_edge_path folder
-pcd_edge_dir_info = dir(fullfile(pcd_edge_path, '*.pcd'));
-% Make a cell of these filepath names
+pcd_edge_dir_info = dir(fullfile(pcd_edge_path{1}, '*.pcd'));
+% Make a cell of these filepath names for each scale
 num_pcd_files = length(pcd_edge_dir_info);
-ptcloud_files = cell(num_pcd_files,2);
+ptcloud_files = cell(num_pcd_files,2,length(scale_folder));
 % Remove non-alphabet letters from image extension in case a period was
 %   included
 image_suffix(isletter(image_suffix)==0)=[];
@@ -94,124 +130,91 @@ for iter = 1:num_pcd_files
     pcd_file = pcd_edge_dir_info(iter).name;
     % Get name of the corresping rgb file
     rgb_file = replace(pcd_file,'pcd',image_suffix);
-    % Add .pcd file to ptcloud_files cell
-    ptcloud_files{iter,1} = fullfile(pcd_edge_path, pcd_file);
-    % Add corresponding rgb file to same row of ptcloud_files cell
-    ptcloud_files{iter,2} = fullfile(dataset_path, 'rgb/', rgb_file);
+    for scale_index = 1:length(scale_folder)
+        % Add .pcd file to ptcloud_files cell
+        ptcloud_files{iter,1,scale_index} = ...
+            fullfile(pcd_edge_path{scale_index}, pcd_file);
+        % Add corresponding rgb file to same row of ptcloud_files cell
+        ptcloud_files{iter,2,scale_index} = ...
+            fullfile(dataset_path, scale_folder{scale_index}, 'rgb/', rgb_file);
+    end
 end
 
 % Construct an instance of the rgbd_dvo class
 rgbd_dvo = rgbd_dvo();
 
-% Load first .pcd file as the target (fixed) point cloud
+% Initialize target and source pointclouds
 target_ptcloud = [];
-% % Load the target point cloud
-target_ptcloud.ptcloud = pcread(ptcloud_files{1,1});
-% % Load the corresponding rgb image as grayscale
-target_ptcloud.image = rgb2gray(imread(ptcloud_files{1,2}));
-% Load second .pcd file as the source (moving) point cloud
-%source_ptcloud = pcread(ptcloud_files{2,1});
 source_ptcloud = [];
-% % Load the source point cloud
-source_ptcloud.ptcloud = pcread(ptcloud_files{2,1});
-% % Load the corresponding rgb image as grayscale
-source_ptcloud.image = rgb2gray(imread(ptcloud_files{2,2}));
 
 total_time = total_time + toc;
+
+% Coarse-to-fine approach
+
+%         Load the target point cloud
+%         target_ptcloud.ptcloud = pcread(ptcloud_files{index_source_ptcloud-1,1,length(scale_vec)});
+%         target_ptcloud.ptcloud = pcread(ptcloud_files{1,1,length(scale_vec)});
+%         Load the corresponding image as grayscale
+%         target_ptcloud.image = rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,length(scale_vec)}));
+%         target_ptcloud.image = rgb2gray(imread(ptcloud_files{1,2,length(scale_vec)}));
+
+tic
 % Index from the second .pcd to the last .pcd
 for index_source_ptcloud = 2
-    tic
-    % Make a temporary target point cloud for down-sampling
-%     target_ptcloud_temp.ptcloud = target_ptcloud.ptcloud;
-%     target_ptcloud_temp.image = target_ptcloud.image;
-%     % Make a temporary source point cloud for down-sampling
-%     source_ptcloud_temp = source_ptcloud.ptcloud;
 
-    % tic
-    % Coarse-to-fine approach
-    %grid_step = 0.005; 
-    %while grid_step > 1*1e-2
-    
-    % Down-sample target point cloud
-    target_ptcloud_downsampled.ptcloud = ...
-        target_ptcloud.ptcloud;
-        %pcdownsample(target_ptcloud.ptcloud,'gridAverage',grid_step);
-        
-    % Down-sample source point cloud
-    source_ptcloud_downsampled = ...
-        source_ptcloud.ptcloud;
-        %pcdownsample(source_ptcloud.ptcloud,'gridAverage',grid_step);
+    % Index from the smallest scale to full scale
+    for index_scale = length(scale_vec):-1:1
 
-
-    % Add corresponding image to down-sampled target point cloud struct
-    target_ptcloud_downsampled.image = target_ptcloud.image;
-    
-    % Add the target and source point clouds to the object
-    %rgbd_dvo.set_ptclouds(target_ptcloud, source_ptcloud_temp);
-
-    for scale = [0.0625 0.125 0.25 0.5 1]
-        
         % Scale the camera parameters in proportion with the camera image
-        rgbd_dvo.fx = fx * scale;
-        rgbd_dvo.fy = fy * scale;
-        rgbd_dvo.cx = cx * scale;
-        rgbd_dvo.cy = cy * scale;
+        rgbd_dvo.fx = fx * scale_vec(index_scale);
+        rgbd_dvo.fy = fy * scale_vec(index_scale);
+        rgbd_dvo.cx = cx * scale_vec(index_scale);
+        rgbd_dvo.cy = cy * scale_vec(index_scale);
+      
+        % Load the target point cloud
+        target_ptcloud.ptcloud = ...
+            pcread(ptcloud_files{index_source_ptcloud-1,1,index_scale});
+        target_ptcloud_filtered.ptcloud = ...
+            pcRangeFilter(target_ptcloud.ptcloud, ...
+            0.9*max(target_ptcloud.ptcloud.Location(:,3)), 0);
+        % Load the corresponding image as grayscale
+%         target_ptcloud.image = ...
+%             rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,index_scale}));
+        target_ptcloud_filtered.image = ...
+            rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,index_scale}));
         
-        % Set point clouds as normal if no scaling required
-        if scale == 1
-            rgbd_dvo.set_ptclouds( ...
-                target_ptcloud_downsampled, source_ptcloud_downsampled);
-        % Otherwise implement modified function to scale necessary variables
-        else
-            rgbd_dvo.set_scaled_ptclouds( ...
-                target_ptcloud_downsampled, source_ptcloud_downsampled, scale);
-        end
-        % Down-sample the target image
-%         rgbd_dvo.fixed_image = imresize(target_ptcloud.image, scale);
-%         rgbd_dvo.u_max = size(rgbd_dvo.fixed_image,2);
-%         rgbd_dvo.v_max = size(rgbd_dvo.fixed_image,1);
-%         % Down-smple the target gradient
-% %         rgbd_dvo.
-% 
-%         %[Gmag,Gdir] = imresize(imgradient(target_ptcloud.image), scale);
-%         [Gmag,Gdir] = imgradient(imresize(target_ptcloud.image, scale));
-%         rgbd_dvo.imgrad.u = Gmag .* cosd(Gdir);
-%         rgbd_dvo.imgrad.v = Gmag .* sind(Gdir);
-%         rgbd_dvo.imgrad.mag = Gmag;
-%         rgbd_dvo.imgrad.dir = Gdir;
-% 
-%         % Scale the point clouds
-%         rgbd_dvo
+        % Load the source point cloud
+        source_ptcloud.ptcloud = ...
+            pcread(ptcloud_files{index_source_ptcloud,1,index_scale});
+        source_ptcloud_filtered.ptcloud = ...
+            pcRangeFilter(source_ptcloud.ptcloud, ...
+            0.9*max(target_ptcloud.ptcloud.Location(:,3)), 0);
+        % Load the corresponding rgb image as grayscale
+%         source_ptcloud.image = ...
+%             rgb2gray(imread(ptcloud_files{index_source_ptcloud,2,index_scale}));
+        source_ptcloud_filtered.image = ...
+            rgb2gray(imread(ptcloud_files{index_source_ptcloud,2,index_scale}));
+
+
+        % Set the point clouds
+%         rgbd_dvo.set_ptclouds( ...
+%             target_ptcloud, source_ptcloud.ptcloud);
+        rgbd_dvo.set_ptclouds( ...
+            target_ptcloud_filtered, source_ptcloud_filtered.ptcloud);
         
-%         imresize(source_ptcloud.image
-%         rgbd_dvo.rgb2intensity(source.Color)
         % Align the point clouds
         rgbd_dvo.align();
         rgbd_dvo.tform.T
-        % Down-sample
-        %grid_step = grid_step*0.85;
-    end
 
-    % Reset the camera parameters
-%     rgbd_dvo.fx = fx;
-%     rgbd_dvo.fy = fy;
-%     rgbd_dvo.cx = cx;
-%     rgbd_dvo.cy = cy;
-%     
-%     % Reset the image dimensions
-%     rgbd_dvo.u_max = size(target_ptcloud.image,2);
-%     rgbd_dvo.v_max = size(target_ptcloud.image,1);
-    
-    % loop_time = toc;
-    % total_time = total_time + loop_time
+    end
 
     % Plot full point clouds and transformed point clouds if true
     if view_full_ptcloud
         % Generate filenames for the full point clouds
         target_ptcloud_filename = ...
-            replace(ptcloud_files{1,1},'pcd_edge','pcd_full');
+            replace(ptcloud_files{1,1,1},'pcd_edge','pcd_full');
         source_ptcloud_filename = ...
-            replace(ptcloud_files{2,1},'pcd_edge','pcd_full');
+            replace(ptcloud_files{2,1,1},'pcd_edge','pcd_full');
 
         % Read full target and source point clouds
         target_ptcloud_full = pcread(target_ptcloud_filename);

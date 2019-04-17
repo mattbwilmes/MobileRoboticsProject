@@ -9,9 +9,9 @@ classdef rgbd_dvo < handle
         fixed_image;            % fixed frame intensity image
         imgrad;                 % image intensity gradient
         gradI;                  % intensity gradient
-        MAX_ITER = 500;        % maximum number of iteration
+        MAX_ITER = 2000;        % maximum number of iteration
         % The program stops if norm(omega)+norm(v) < eps
-        eps = 5*1e-4;
+        eps = 5e-4;
         eps_2 = 1e-4;
         R = eye(3);             % initial orientation 
         T = zeros(3,1);         % initial translation
@@ -36,6 +36,7 @@ classdef rgbd_dvo < handle
         invalid_points;         % invalid points after projection
         Kf;                     % intrinsic matrix of focal lengths
         residual;
+        error_prev = 99999;
         fx;                     % focal length x
         fy;                     % focal length y
         cx;                     % optical center x
@@ -335,7 +336,17 @@ classdef rgbd_dvo < handle
                         break;
                     end
                 end
+
+                error = obj.residual'*obj.residual;
                 
+                if error / obj.error_prev > 0.995
+                    obj.R_prev = obj.R;
+                    obj.T_prev = obj.T;
+                    obj.error_prev = error;
+                    break;
+                end
+                    
+
                 % Integrating
                 th = norm(obj.omega); homega = obj.hat(obj.omega); 
                 dR = eye(3) + (sin(dt * th) / th) * homega + ...
