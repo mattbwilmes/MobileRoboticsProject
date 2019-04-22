@@ -1,0 +1,12 @@
+# MATLAB
+*.m~
+*.pcd
+
+# ROS
+*.bag
+
+# MAC
+*.DS_Store
+
+# OTHER
+*.png
