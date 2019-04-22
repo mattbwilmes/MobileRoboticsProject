@@ -1,8 +1,10 @@
+% used for 
+
 clear all
 %load('open3d_desk\groundMatrix_desk.mat')
-load('open3d_xyz\groundMatrix_xyz.mat')
-
-makeVideo = false;
+%load('open3d_xyz/groundMatrix_xyz.mat')
+load('dvo_xyz/freiburg1_xyz_tform.mat')
+makeVideo = true;
 % Register Two Point Clouds
 if makeVideo
     try
@@ -43,7 +45,8 @@ ptCloudCurrent = ptcloud_edge_filter(ptCloudCurrent_full);
 
 gridSize = 0.1;
 
-ptCloudAligned = pctransform(ptCloudCurrent_full,affine3d(groundMatrix{1}'));
+%ptCloudAligned = pctransform(ptCloudCurrent_full,affine3d(groundMatrix{1}'));
+ptCloudAligned = pctransform(ptCloudCurrent_full,affine3d(transformation{1,2}'));
 
 mergeSize = 0.015;
 ptCloudScene = pcmerge(ptCloudRef_full, ptCloudAligned, mergeSize);
@@ -57,11 +60,14 @@ hAxes.CameraViewAngleMode = 'auto';
 hScatter = hAxes.Children;
 
 
-for i = 3:iter
+for i = 3:iter-2
     cur_frame_num = i
     ptcloud_files{i,1};
-    groundMatrix{i}
-    accumTform = affine3d(groundMatrix{i-1}');
+    %groundMatrix{i};
+    transformation{i,2}
+    %accumTform = affine3d(groundMatrix{i-1}');
+
+    accumTform = affine3d(transformation{i-1,2}');
     ptCloudAligned = pctransform(pcread(ptcloud_files{i,1}), accumTform);
 
     % Update the world scene.
