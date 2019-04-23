@@ -1,15 +1,16 @@
 timestamps = {};
 Quaternion = {};
 ass_ground = load('ass_groundtruth_desk.mat');
+load('xyz_hybrid.mat');
 % abs_matrix = load('absMatrix_xyz.mat');
 %abs_matrix = load('cvo_xyz_align_gt.mat')
-fileID = fopen('Quat_desk_sDvo.txt','w');
+fileID = fopen('Quat_xyz_hybrid.txt','w');
 % fprintf(fileID,'%6s %12s\n','#timestamps','quat');
 % desk
 % temp_trans = [1.3112;0.8507;1.5186;1];
 % xyz
 temp_trans = [0; 0; 0; 1];
-for i = 1:size(frame_transform,1)
+for i = 1:size(groundMatrix)
     num = num2str(i-1);
     name = 'num';
     s = strcat(name,num);
@@ -17,9 +18,9 @@ for i = 1:size(frame_transform,1)
     % rotation matrix
 %     Matrix_rot = abs_matrix.groundMatrix{i}(1:3,1:3);
     %% 
-    Matrix_rot = frame_transform{i,2}(1:3,1:3);
+    Matrix_rot = groundMatrix{i}(1:3,1:3);
     % robot location
-    trans = frame_transform{i,2} * temp_trans;
+    trans = groundMatrix{i} * temp_trans;
     %%
     trans = trans(1:3);
     trans = trans';
@@ -35,6 +36,6 @@ for i = 1:size(frame_transform,1)
     fprintf(fileID,' %.6f %.6f %.6f %.6f %.6f %.6f %.6f\n',Quaternion{i});
 end
 
-fclose(fileID);
+ fclose(fileID);
 % save('transMatrix_xyz.mat','transformationMatrix')
 % save('Quat_xyz.txt','timestamps','Quaternion')
