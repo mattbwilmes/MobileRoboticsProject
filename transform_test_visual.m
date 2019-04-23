@@ -4,7 +4,7 @@ clear all
 %load('open3d_desk\groundMatrix_desk.mat')
 %load('open3d_xyz/groundMatrix_xyz.mat')
 load('dvo_xyz/freiburg1_xyz_tform.mat')
-makeVideo = true;
+makeVideo = false;
 % Register Two Point Clouds
 if makeVideo
     try
