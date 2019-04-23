@@ -9,11 +9,12 @@ Tested with: MATLAB 2018b
 - Computer Vision Toolbox
 
 ## Procedure:
-1. Open rgbd_main.m
-2. Change rgbd_tum_path to match the location of the dvo-master/rgbd_tum folder
-3. Press Run
-4. Observe the improvement with versus without the transform between the first four images
-5. Frame-to-frame transformations are saved as dvo-master/rgbd_tum/[datasest]/[dataset]_tform_new.mat
+1. In MATLAB, right-click dvo-master, select Add to Path, then select Selected Folders and Subfolders
+2. Open dvo-master/rgbd_main.m
+3. Change rgbd_tum_path to match the location of the dvo-master/rgbd_tum folder
+4. Press Run
+5. Observe the improvement of the the transform between the first three pairs of images
+6. Frame-to-frame transformations are saved as dvo-master/rgbd_tum/[datasest]/[dataset]_tform_new.mat
 
 ## Folder structure
 dvo-master

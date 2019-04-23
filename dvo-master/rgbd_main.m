@@ -58,7 +58,7 @@ depth_scaling_factor = 5000;  % depth scaling factor
 % % TODO: Make this a custom path based on user
 % Path to the folder containing your rgbd_tum datasets
 rgbd_tum_path = ...
-    '/Users/MatthewWilmes/Documents/MATLAB/School/EECS568_MATLAB/Project/rgbd_tum/';
+    '/Users/MatthewWilmes/Documents/MATLAB/School/EECS568_MATLAB/Project/dvo-master/rgbd_tum/';
 % Select the dataset you want to use
 dataset_name = 'freiburg1_xyz';
 % The extension of the images in the dataset (e.g. png, jpeg, etc.)
@@ -77,8 +77,8 @@ end_row = inf; % set to inf if you want to go to the end of the file
 view_full_ptcloud = false;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tic
-total_time = 0;
+% tic
+% total_time = 0;
 
 % Generate name of folder path to dataset
 dataset_path = strcat(rgbd_tum_path, dataset_name, '/');
@@ -147,20 +147,15 @@ rgbd_dvo = rgbd_dvo();
 target_ptcloud = [];
 source_ptcloud = [];
 
-total_time = total_time + toc;
+% total_time = total_time + toc;
 
 % Coarse-to-fine approach
 
-%         Load the target point cloud
-%         target_ptcloud.ptcloud = pcread(ptcloud_files{index_source_ptcloud-1,1,length(scale_vec)});
-%         target_ptcloud.ptcloud = pcread(ptcloud_files{1,1,length(scale_vec)});
-%         Load the corresponding image as grayscale
-%         target_ptcloud.image = rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,length(scale_vec)}));
-%         target_ptcloud.image = rgb2gray(imread(ptcloud_files{1,2,length(scale_vec)}));
+% tic
 
-tic
+% Set to 2:4 for DEMO
 % Index from the second .pcd to the last .pcd
-for index_source_ptcloud = 2
+for index_source_ptcloud = 2:4
 
     % Index from the smallest scale to full scale
     for index_scale = length(scale_vec):-1:1
@@ -178,8 +173,6 @@ for index_source_ptcloud = 2
             pcRangeFilter(target_ptcloud.ptcloud, ...
             0.9*max(target_ptcloud.ptcloud.Location(:,3)), 0);
         % Load the corresponding image as grayscale
-%         target_ptcloud.image = ...
-%             rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,index_scale}));
         target_ptcloud_filtered.image = ...
             rgb2gray(imread(ptcloud_files{index_source_ptcloud-1,2,index_scale}));
         
@@ -190,21 +183,16 @@ for index_source_ptcloud = 2
             pcRangeFilter(source_ptcloud.ptcloud, ...
             0.9*max(target_ptcloud.ptcloud.Location(:,3)), 0);
         % Load the corresponding rgb image as grayscale
-%         source_ptcloud.image = ...
-%             rgb2gray(imread(ptcloud_files{index_source_ptcloud,2,index_scale}));
         source_ptcloud_filtered.image = ...
             rgb2gray(imread(ptcloud_files{index_source_ptcloud,2,index_scale}));
 
-
         % Set the point clouds
-%         rgbd_dvo.set_ptclouds( ...
-%             target_ptcloud, source_ptcloud.ptcloud);
         rgbd_dvo.set_ptclouds( ...
             target_ptcloud_filtered, source_ptcloud_filtered.ptcloud);
         
         % Align the point clouds
         rgbd_dvo.align();
-        rgbd_dvo.tform.T
+%         rgbd_dvo.tform.T
 
     end
 
@@ -263,21 +251,8 @@ for index_source_ptcloud = 2
         title('Target and Source Point Clouds with Transform')
     end
 
-    rgbd_dvo.tform.T
-    sum(rgbd_dvo.residual'*rgbd_dvo.residual)
-    
-    % Set up for the next iteration, unless there is no next iteration
-    if index_source_ptcloud ~= num_pcd_files
-        % Choose the next target point cloud
-        % % The source point cloud is now the target point cloud for the next pair
-        target_ptcloud.ptcloud = source_ptcloud.ptcloud;
-        % % Assocaite the proper grayscale image
-        target_ptcloud.image = source_ptcloud.image;
-        % Load the next source point cloud
-        source_ptcloud.ptcloud = pcread(ptcloud_files{index_source_ptcloud+1,1});
-        % % Load the corresponding rgb image as grayscale
-        source_ptcloud.image = rgb2gray(imread(ptcloud_files{index_source_ptcloud+1,2}));
-    end
+%     rgbd_dvo.tform.T
+%     sum(rgbd_dvo.residual'*rgbd_dvo.residual)
 
     % Reset the predicted transformation matrix
     rgbd_dvo.R = eye(3);
@@ -295,11 +270,12 @@ for index_source_ptcloud = 2
     transformation{index_source_ptcloud-1,2} = rgbd_dvo.tform.T';
 
     fprintf('Just finished transform from %d to %d\n',index_source_ptcloud,index_source_ptcloud-1)
-    total_time = total_time + toc
+    rgbd_dvo.tform.T
+%     total_time = total_time + toc
 
 end
 
 % Save transformation cell as a .mat file
-mat_file = strcat(dataset_path,dataset_name,'_tform','.mat');
+mat_file = strcat(dataset_path,dataset_name,'_tform_new','.mat');
 save(mat_file,'transformation');
 disp('done!')
