@@ -1,0 +1,2 @@
+simple_dvo
+-DCATKIN_DEVEL_PREFIX=/home/mwilmes2/School/EECS568/simple_dvo-master/devel -DCMAKE_INSTALL_PREFIX=/home/mwilmes2/School/EECS568/simple_dvo-master/install -G Unix Makefiles

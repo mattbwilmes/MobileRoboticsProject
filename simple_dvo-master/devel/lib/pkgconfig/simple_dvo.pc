@@ -1,0 +1,8 @@
+prefix=/home/mwilmes2/School/EECS568/simple_dvo-master/devel
+
+Name: simple_dvo
+Description: Description of simple_dvo
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/mwilmes2/School/EECS568/simple_dvo-master/devel/lib 
+Requires: 
