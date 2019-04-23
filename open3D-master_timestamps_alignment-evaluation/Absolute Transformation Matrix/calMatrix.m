@@ -1,3 +1,4 @@
+load('fram_trans_xyz_hybrid.mat')
 transformationMatrix = {};
 groundMatrix = {};
 Matrix = {};
