@@ -53,7 +53,7 @@ pcd_full_dir_info = dir(fullfile(pcd_full_path, '*.pcd'));
 num_pcd_files = length(pcd_full_dir_info);
 time_step = [];
 
-num_pcd_files = length(Ground_mat);
+%num_pcd_files = length(Ground_mat);
 
 for i = 1:num_pcd_files-1
     time_step(i)=str2num(pcd_full_dir_info(i+1).name(1:end-4)); % the real time step from current frame to world
