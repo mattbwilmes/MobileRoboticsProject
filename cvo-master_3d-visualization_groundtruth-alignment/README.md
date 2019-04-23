@@ -42,7 +42,7 @@ cvo-master_3d-visualization_groundtruth-alignment/
 --> rgbd_tum/
 - Contains the freiburg1_desk and freiburg1_xyz’s RGB image, depth image, full point cloud files (first 100 images) without extracting edges
 
---> assG_rgb_desk2.txt & assG_rgb_xyz3.txt
+--> assG_rgb_desk2.txt & assG_rgb_xyz2.txt
 - Contain aligned ground truth timesteps, ground truth quaternion and related point cloud files’ timesteps
 
 --> align_ground_truth.m
