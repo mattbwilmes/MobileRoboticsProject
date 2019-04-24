@@ -42,6 +42,7 @@ See also, this paper by Zhou et al.: http://www.open3d.org/paper.pdf
 
 *groundtruth_file.txt*
 - ass_groundtruth_desk.txt
+
 *filename.txt*
 - dvo: Quat_desk_dvo.txt
 - cvo: Quat_desk_cvo.txt
@@ -52,6 +53,7 @@ See also, this paper by Zhou et al.: http://www.open3d.org/paper.pdf
 
 *groundtruth_file.txt*
 - ass_groundtruth_xyz.txt
+
 *filename.txt*
 - dvo: Quat_xyz_dvo.txt
 - cvo: Quat_xyz_cvo.txt
@@ -64,6 +66,7 @@ See also, this paper by Zhou et al.: http://www.open3d.org/paper.pdf
 
 *groundtruth_file.txt*
 - S_dvo_assG_RGB_desk.txt
+
 *filename.txt*
 - Quat_desk_sDvo.txt
 
@@ -71,6 +74,7 @@ See also, this paper by Zhou et al.: http://www.open3d.org/paper.pdf
 
 *groundtruth_file.txt*
 - S_dvo_assG_RGB_xyz.txt
+
 *filename.txt*
 - Quat_xyz_sDvo.txt
 
